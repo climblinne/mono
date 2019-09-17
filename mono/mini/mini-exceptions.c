@@ -1469,12 +1469,12 @@ check_whitelisted_module (const char *in_name, const char **out_module)
 #else
 	if (allow_all_native_libraries) {
 		if (out_module)
-			*out_module = "<external module>";
+			copy_summary_string_safe (out_module, in_name);
 		return TRUE;
 	}
 	if (g_str_has_suffix (in_name, "mono-sgen")) {
 		if (out_module)
-			*out_module = "mono";
+			copy_summary_string_safe (out_module, "mono");
 		return TRUE;
 	}
 
@@ -1483,7 +1483,7 @@ check_whitelisted_module (const char *in_name, const char **out_module)
 		if (!g_str_has_suffix (in_name, iter->suffix))
 			continue;
 		if (out_module)
-			*out_module = iter->exported_name;
+			copy_summary_string_safe (out_module, iter->exported_name);
 		return TRUE;
 	}
 
@@ -1527,6 +1527,7 @@ mono_get_portable_ip (intptr_t in_ip, intptr_t *out_ip, gint32 *out_offset, cons
 	if (info.dli_saddr && out_name)
 		copy_summary_string_safe (out_name, info.dli_sname);
 #endif
+
 	return TRUE;
 }
 
@@ -1578,6 +1579,7 @@ summarize_frame_internal (MonoMethod *method, gpointer ip, size_t native_offset,
 
 	dest->unmanaged_data.ip = (intptr_t) ip;
 	dest->is_managed = managed;
+	dest->unmanaged_data.module [0] = '\0';
 
 	if (!managed && method && method->wrapper_type != MONO_WRAPPER_NONE && method->wrapper_type < MONO_WRAPPER_NUM) {
 		dest->is_managed = FALSE;
@@ -1751,7 +1753,7 @@ mono_summarize_unmanaged_stack (MonoThreadSummary *out)
 		intptr_t ip = frame_ips [i];
 		MonoFrameSummary *frame = &out->unmanaged_frames [i];
 
-		int success = mono_get_portable_ip (ip, &frame->unmanaged_data.ip, &frame->unmanaged_data.offset, &frame->unmanaged_data.module, (char *) frame->str_descr);
+		int success = mono_get_portable_ip (ip, &frame->unmanaged_data.ip, &frame->unmanaged_data.offset, (const char**) &frame->unmanaged_data.module, (char *) frame->str_descr);
 		if (!success)
 			continue;
 
